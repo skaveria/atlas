@@ -5,7 +5,20 @@
 
 (def player-speed 0.035)
 (def player-radius 0.35)
+
 (def drag-rotation-speed 0.008)
+(def vertical-drag-speed 0.025)
+
+(def zoom-speed 0.004)
+
+(def min-camera-height 2.2)
+(def max-camera-height 7.0)
+
+(def min-camera-radius 3.5)
+(def max-camera-radius 11.0)
+
+(defn clamp [lo hi x]
+  (max lo (min hi x)))
 
 (defn entity-at-event [state* event]
   (let [scene (get @state* :scene)
@@ -21,7 +34,9 @@
                       (* 2 (/ (- (.-clientY event) (.-top rect))
                               (.-height rect)))))
             raycaster (THREE/Raycaster.)]
+
         (.setFromCamera raycaster mouse camera)
+
         (let [hits (.intersectObjects raycaster (.-children scene) true)]
           (loop [i 0]
             (when (< i (.-length hits))
@@ -45,24 +60,47 @@
   (when (= 0 (.-button event))
     (swap! state* assoc
            :dragging-camera? true
-           :last-drag-x (.-clientX event))))
+           :last-drag-x (.-clientX event)
+           :last-drag-y (.-clientY event))))
 
 (defn drag-camera! [state* event]
   (when (get @state* :dragging-camera?)
     (let [last-x (get @state* :last-drag-x)
+          last-y (get @state* :last-drag-y)
           x (.-clientX event)
-          dx (- x last-x)]
+          y (.-clientY event)
+          dx (- x last-x)
+          dy (- y last-y)]
       (swap! state*
              (fn [s]
                (-> s
                    (update :camera-angle + (* dx drag-rotation-speed))
-                   (assoc :last-drag-x x))))
+                   (update :camera-height
+                           #(clamp min-camera-height
+                                   max-camera-height
+                                   (+ (or % 5)
+                                      (* dy vertical-drag-speed))))
+                   (assoc :last-drag-x x
+                          :last-drag-y y))))
       (scene/update-camera! state*))))
 
 (defn end-drag! [state* _event]
   (swap! state* assoc
          :dragging-camera? false
-         :last-drag-x nil))
+         :last-drag-x nil
+         :last-drag-y nil))
+
+(defn zoom-camera! [state* event]
+  (.preventDefault event)
+  (let [dy (.-deltaY event)]
+    (swap! state*
+           update
+           :camera-radius
+           #(clamp min-camera-radius
+                   max-camera-radius
+                   (+ (or % 7)
+                      (* dy zoom-speed)))))
+  (scene/update-camera! state*))
 
 (defn install-input! [state* renderer]
   (.addEventListener
@@ -84,6 +122,11 @@
    js/document
    "mouseup"
    #(end-drag! state* %))
+
+  (.addEventListener
+   (.-domElement renderer)
+   "wheel"
+   #(zoom-camera! state* %))
 
   (.addEventListener
    js/document
@@ -131,17 +174,24 @@
      :max-z (+ (.-z pos) half-z)}))
 
 (defn circle-intersects-aabb? [x z radius bounds]
-  (let [closest-x (min (:max-x bounds) (max (:min-x bounds) x))
-        closest-z (min (:max-z bounds) (max (:min-z bounds) z))
+  (let [closest-x (min (:max-x bounds)
+                       (max (:min-x bounds) x))
+        closest-z (min (:max-z bounds)
+                       (max (:min-z bounds) z))
         dx (- x closest-x)
         dz (- z closest-z)]
-    (< (+ (* dx dx) (* dz dz))
+    (< (+ (* dx dx)
+          (* dz dz))
        (* radius radius))))
 
 (defn blocked? [state* x z]
   (some
    (fn [mesh]
-     (circle-intersects-aabb? x z player-radius (solid-bounds mesh)))
+     (circle-intersects-aabb?
+      x
+      z
+      player-radius
+      (solid-bounds mesh)))
    (get @state* :solid-objects)))
 
 (defn try-move-player! [state* dx dz]
@@ -152,7 +202,6 @@
         next-x (+ old-x dx)
         next-z (+ old-z dz)]
 
-    ;; Axis-separated movement allows sliding along crates.
     (when-not (blocked? state* next-x old-z)
       (set! (.-x pos) next-x))
 
@@ -166,6 +215,7 @@
     (when player
       (let [forward-x (- (js/Math.cos angle))
             forward-z (- (js/Math.sin angle))
+
             right-x (js/Math.sin angle)
             right-z (- (js/Math.cos angle))
 
@@ -174,7 +224,7 @@
                                1
                                0)
                              (if (or (contains? keys "s")
-                                     (contains? keys "arrowdown"))
+                                      (contains? keys "arrowdown"))
                                -1
                                0))
 
@@ -183,7 +233,7 @@
                              1
                              0)
                            (if (or (contains? keys "a")
-                                   (contains? keys "arrowleft"))
+                                    (contains? keys "arrowleft"))
                              -1
                              0))
 

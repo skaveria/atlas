@@ -3,9 +3,26 @@
 
 (defn material-for [material-key]
   (case material-key
-    :wood (THREE/MeshBasicMaterial. #js {:color 0x88aa88})
-    "wood" (THREE/MeshBasicMaterial. #js {:color 0x88aa88})
-    (THREE/MeshBasicMaterial. #js {:color 0xaaaaaa})))
+
+    :wood
+    (THREE/MeshStandardMaterial.
+     #js {:color 0x8fae8f
+          :roughness 0.72
+          :metalness 0.02
+          :envMapIntensity 0.65})
+
+    "wood"
+    (THREE/MeshStandardMaterial.
+     #js {:color 0x8fae8f
+          :roughness 0.72
+          :metalness 0.02
+          :envMapIntensity 0.65})
+
+    (THREE/MeshStandardMaterial.
+     #js {:color 0xaaaaaa
+          :roughness 0.72
+          :metalness 0.02
+          :envMapIntensity 0.65})))
 
 (defn make-cube [entity]
   (let [body (get entity :body)

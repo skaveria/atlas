@@ -29,21 +29,29 @@
         grid (scene/make-grid)
         player (scene/make-player)]
 
-    (scene/install-base-scene! scene floor grid player)
+   (scene/install-base-scene!
+ renderer
+ scene
+ floor
+ grid
+ player)
 
     (.appendChild js/document.body (.-domElement renderer))
 
     (reset! state
             {:scene scene
-             :renderer renderer
-             :camera camera
-             :player player
-             :selected-entity nil
-             :solid-objects []
-             :keys #{}
-             :camera-angle 0.75
-             :dragging-camera? false
-             :last-drag-x nil})
+ :renderer renderer
+ :camera camera
+ :player player
+ :selected-entity nil
+ :solid-objects []
+ :keys #{}
+ :camera-angle 0.75
+             :camera-height 5
+             :camera-radius 7
+ :dragging-camera? false
+ :last-drag-x nil
+ :last-drag-y nil})
 
     (input/install-input! state renderer)
     (projection/fetch-projection! state scene)
