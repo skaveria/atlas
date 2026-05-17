@@ -19,7 +19,8 @@
         [sx sy sz] scale]
 
     (set! (.-name mesh) (str (get entity :name)))
-    (set! (.-userData mesh) #js {:entity (clj->js entity)})
+    (set! (.-userData mesh) #js {:entity (clj->js entity)
+                                  :solid true})
 
     (set! (.-x (.-position mesh)) x)
     (set! (.-y (.-position mesh)) y)
@@ -37,17 +38,20 @@
     "cube" (make-cube entity)
     nil))
 
-(defn render-projection! [scene projection]
-  (doseq [entity (get projection :entities)]
-    (when-let [mesh (entity->mesh entity)]
-      (.add scene mesh))))
+(defn render-projection! [state* scene projection]
+  (let [meshes (->> (get projection :entities)
+                    (keep entity->mesh)
+                    vec)]
+    (doseq [mesh meshes]
+      (.add scene mesh))
+    (swap! state* assoc :solid-objects meshes)))
 
-(defn fetch-projection! [scene]
+(defn fetch-projection! [state* scene]
   (-> (js/fetch "http://localhost:7777/api/projection")
       (.then #(.json %))
       (.then
        (fn [raw]
          (let [projection (js->clj raw :keywordize-keys true)]
-           (render-projection! scene projection))))
+           (render-projection! state* scene projection))))
       (.catch
        #(js/console.error "Failed to load Atlas projection" %))))

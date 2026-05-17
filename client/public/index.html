@@ -28,6 +28,8 @@
       max-width: 520px;
       white-space: pre-wrap;
       z-index: 10;
+      border: 1px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(4px);
     }
 
     #close-inspect {
@@ -37,6 +39,11 @@
       color: white;
       border: 1px solid rgba(255,255,255,0.25);
       cursor: pointer;
+      font-family: monospace;
+    }
+
+    #close-inspect:hover {
+      background: rgba(255,255,255,0.22);
     }
 
     #overlay-content {
@@ -53,6 +60,7 @@
       padding: 4px;
       z-index: 20;
       min-width: 120px;
+      backdrop-filter: blur(4px);
     }
 
     .context-item {
@@ -62,6 +70,50 @@
 
     .context-item:hover {
       background: rgba(255,255,255,0.15);
+    }
+
+    .inspect-title {
+      color: #d7ffd7;
+      margin-bottom: 12px;
+    }
+
+    .inspect-section {
+      color: #88aaff;
+      margin-top: 10px;
+      margin-bottom: 4px;
+      font-weight: bold;
+    }
+
+    .inspect-name {
+      color: #ffffff;
+    }
+
+    .inspect-examine {
+      color: #d8cfa8;
+      line-height: 1.35;
+    }
+
+    .edn-record {
+      margin: 0;
+      color: #dddddd;
+      white-space: pre-wrap;
+      line-height: 1.3;
+    }
+
+    .edn-keyword {
+      color: #91d991;
+    }
+
+    .edn-string {
+      color: #d8cfa8;
+    }
+
+    .edn-number {
+      color: #9fc7ff;
+    }
+
+    .edn-bracket {
+      color: #c586c0;
     }
   </style>
 </head>
@@ -73,7 +125,9 @@
   </div>
 
   <div id="context-menu">
-    <div id="inspect-action" class="context-item">Inspect</div>
+    <div id="inspect-action" class="context-item">
+      Inspect
+    </div>
   </div>
 
   <script src="/js/main.js"></script>

@@ -5,6 +5,7 @@
     {:id (:id entity)
      :kind (:kind entity)
      :name (:name entity)
+     :examine (:examine entity)
      :body body
      :inspect entity}))
 

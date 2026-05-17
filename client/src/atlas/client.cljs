@@ -9,8 +9,11 @@
          :camera nil
          :player nil
          :selected-entity nil
+         :solid-objects []
          :keys #{}
-         :camera-angle 0.75}))
+         :camera-angle 0.75
+         :dragging-camera? false
+         :last-drag-x nil}))
 
 (defn animate [renderer scene camera]
   (js/requestAnimationFrame
@@ -36,11 +39,14 @@
              :camera camera
              :player player
              :selected-entity nil
+             :solid-objects []
              :keys #{}
-             :camera-angle 0.75})
+             :camera-angle 0.75
+             :dragging-camera? false
+             :last-drag-x nil})
 
     (input/install-input! state renderer)
-    (projection/fetch-projection! scene)
+    (projection/fetch-projection! state scene)
     (scene/update-camera! state)
     (animate renderer scene camera)
 
