@@ -23,15 +23,57 @@
       left: 10px;
       color: white;
       font-family: monospace;
-      background: rgba(0,0,0,0.5);
+      background: rgba(0,0,0,0.55);
       padding: 8px;
+      max-width: 520px;
+      white-space: pre-wrap;
+      z-index: 10;
+    }
+
+    #close-inspect {
+      float: right;
+      margin-left: 12px;
+      background: rgba(255,255,255,0.12);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.25);
+      cursor: pointer;
+    }
+
+    #overlay-content {
+      white-space: pre-wrap;
+    }
+
+    #context-menu {
+      position: absolute;
+      display: none;
+      color: white;
+      font-family: monospace;
+      background: rgba(20,20,20,0.94);
+      border: 1px solid rgba(255,255,255,0.25);
+      padding: 4px;
+      z-index: 20;
+      min-width: 120px;
+    }
+
+    .context-item {
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+
+    .context-item:hover {
+      background: rgba(255,255,255,0.15);
     }
   </style>
 </head>
 
 <body>
   <div id="overlay">
-    Atlas Prototype 0
+    <button id="close-inspect">×</button>
+    <div id="overlay-content">Atlas Prototype 0</div>
+  </div>
+
+  <div id="context-menu">
+    <div id="inspect-action" class="context-item">Inspect</div>
   </div>
 
   <script src="/js/main.js"></script>

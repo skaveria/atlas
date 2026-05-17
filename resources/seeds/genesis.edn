@@ -2,6 +2,7 @@
  [{:id :object/crate-001
    :kind :object
    :name "Old Crate"
+   :examine "Perhaps the first crate ever?"
 
    :relations
    #{:room/start
@@ -11,5 +12,21 @@
    :projection/body
    {:form :cube
     :position [0 0.5 0]
+    :scale [1 1 1]
+    :material :wood}}
+
+  {:id :object/crate-002
+   :kind :object
+   :name "Quiet Crate"
+   :examine "This crate is unusually quiet, as if it is listening to the grid."
+
+   :relations
+   #{:room/start
+     :material/wood
+     :symbol/listening}
+
+   :projection/body
+   {:form :cube
+    :position [3 0.5 -2]
     :scale [1 1 1]
     :material :wood}}]}
