@@ -1,0 +1,13 @@
+{
+  "name": "atlas-client",
+  "private": true,
+  "scripts": {
+    "dev": "shadow-cljs watch app",
+    "release": "shadow-cljs release app"
+  },
+  "dependencies": {
+    "three": "^0.164.1",
+    "shadow-cljs": "^2.28.20"
+  },
+  "devDependencies": {}
+}

@@ -1,0 +1,16 @@
+{:paths ["src" "resources" "dev"]
+
+ :deps
+ {org.clojure/clojure {:mvn/version "1.12.0"}
+
+  ;; web server
+  http-kit/http-kit {:mvn/version "2.8.0"}
+
+  ;; routing
+  metosin/reitit-ring {:mvn/version "0.7.2"}
+
+  ;; json
+  cheshire/cheshire {:mvn/version "5.13.0"}
+
+  ;; websocket + data formats later
+  com.cognitect/transit-clj {:mvn/version "1.0.333"}}}
