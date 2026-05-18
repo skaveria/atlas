@@ -29,4 +29,24 @@
    {:form :cube
     :position [3 0.5 -2]
     :scale [1 1 1]
-    :material :wood}}]}
+    :material :wood}}
+
+  {:id :object/plantpot-001
+   :kind :object
+   :name "Plant Pot"
+   :examine "A small plant pot. It seems slightly too important for what it is."
+
+   :relations
+   #{[:rests-on :object/crate-001]
+     :material/ceramic
+     :symbol/growth}
+
+   :projection/body
+   {:form :model
+
+ :model "/models/plantpot.glb"
+:position [0 1.05 0]
+:scale [0.5 0.5 0.5]
+:rotation [0 0 0]
+
+ :solid? true}}]}

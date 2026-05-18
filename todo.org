@@ -1,8 +1,6 @@
 #+title: Todo
 
-- When right clicking an object, it should say "Inspect: $objectname"
 - Player Inventory
-- Remove "Atlas Prototype 0" window from always appearing.
 - Create plant pot
 - place plant pot on crate
 - Take plant from on top of crate and put into inventory
