@@ -1,7 +1,8 @@
 (ns atlas.input
   (:require ["three" :as THREE]
             [atlas.ui :as ui]
-            [atlas.scene :as scene]))
+            [atlas.scene :as scene]
+            [atlas.projection :as projection]))
 
 (def player-speed 0.035)
 (def player-radius 0.35)
@@ -20,6 +21,18 @@
 (defn clamp [lo hi x]
   (max lo (min hi x)))
 
+(defn set-entity-on-object! [object entity]
+  (when object
+    (.traverse object
+               (fn [child]
+                 (let [old-user-data (.-userData child)
+                       solid (aget old-user-data "solid")
+                       root (aget old-user-data "root")]
+                   (set! (.-userData child)
+                         #js {:entity (clj->js entity)
+                              :solid solid
+                              :root root}))))))
+
 (defn hit-at-event [state* event]
   (let [scene (get @state* :scene)
         camera (get @state* :camera)
@@ -34,9 +47,7 @@
                       (* 2 (/ (- (.-clientY event) (.-top rect))
                               (.-height rect)))))
             raycaster (THREE/Raycaster.)]
-
         (.setFromCamera raycaster mouse camera)
-
         (let [hits (.intersectObjects raycaster (.-children scene) true)]
           (loop [i 0]
             (when (< i (.-length hits))
@@ -100,7 +111,6 @@
 
 (defn zoom-camera! [state* event]
   (.preventDefault event)
-
   (let [dy (.-deltaY event)]
     (swap! state*
            update
@@ -109,7 +119,6 @@
                    max-camera-radius
                    (+ (or % 7)
                       (* dy zoom-speed)))))
-
   (scene/update-camera! state*))
 
 (defn update-hover-tooltip! [state* event]
@@ -136,6 +145,46 @@
       (identical? mesh object))
     solid-objects)))
 
+(defn remove-index [items idx]
+  (vec
+   (concat
+    (subvec (vec items) 0 idx)
+    (subvec (vec items) (inc idx)))))
+
+(defn add-contained-item [container item]
+  (update container :contains
+          (fn [items]
+            (conj (vec items) item))))
+
+(defn remove-contained-index [container idx]
+  (update container :contains remove-index idx))
+
+(defn player-drop-position [state*]
+  (let [player (get @state* :player)
+        angle (get @state* :camera-angle)
+        pos (.-position player)
+        forward-x (- (js/Math.cos angle))
+        forward-z (- (js/Math.sin angle))
+        distance 1.25]
+    [(+ (.-x pos) (* forward-x distance))
+     0.05
+     (+ (.-z pos) (* forward-z distance))]))
+
+(defn prepare-dropped-entity [state* entity]
+  (let [[x _ z] (player-drop-position state*)]
+    (-> entity
+        (assoc :contains nil)
+        (assoc-in [:body :position] [x 0.08 z]))))
+
+(defn add-world-entity! [state* entity]
+  (let [scene (get @state* :scene)]
+    (when scene
+      (projection/entity->mesh!
+       entity
+       (fn [mesh]
+         (.add scene mesh)
+         (swap! state* update :solid-objects conj mesh))))))
+
 (defn take-selected! [state*]
   (let [entity (get @state* :selected-entity)
         object (get @state* :selected-object)
@@ -155,6 +204,83 @@
       (ui/hide-menu!)
       (ui/hide-hover-tooltip!)
       (ui/render-inventory! state*))))
+
+(defn store-in-selected! [state* item-index]
+  (let [container (get @state* :selected-entity)
+        object (get @state* :selected-object)
+        inventory (vec (get @state* :inventory))
+        item (get inventory item-index)]
+    (when (and container object item)
+      (let [updated-container (add-contained-item container item)]
+
+        (set-entity-on-object! object updated-container)
+
+        (swap! state*
+               (fn [s]
+                 (-> s
+                     (assoc :selected-entity updated-container
+                            :inventory-open? true)
+                     (update :inventory remove-index item-index))))
+
+        (ui/hide-menu!)
+        (ui/render-inventory! state*)))))
+
+(defn take-from-selected! [state* item-index]
+  (let [container (get @state* :selected-entity)
+        object (get @state* :selected-object)
+        items (vec (get container :contains))
+        item (get items item-index)]
+    (when (and container object item)
+      (let [updated-container (remove-contained-index container item-index)]
+
+        (set-entity-on-object! object updated-container)
+
+        (swap! state*
+               (fn [s]
+                 (-> s
+                     (assoc :selected-entity updated-container
+                            :inventory-open? true)
+                     (update :inventory conj item))))
+
+        (ui/hide-menu!)
+        (ui/render-inventory! state*)))))
+
+(defn drop-inventory-item! [state* item-index]
+  (let [inventory (vec (get @state* :inventory))
+        item (get inventory item-index)]
+    (when item
+      (let [dropped (prepare-dropped-entity state* item)]
+
+        (add-world-entity! state* dropped)
+
+        (swap! state*
+               (fn [s]
+                 (-> s
+                     (assoc :inventory-open? true)
+                     (update :inventory remove-index item-index))))
+
+        (ui/render-inventory! state*)))))
+
+(defn store-index-from-event [event]
+  (let [target (.-target event)
+        idx-str (when target
+                  (.getAttribute target "data-store-index"))]
+    (when idx-str
+      (js/parseInt idx-str 10))))
+
+(defn take-from-index-from-event [event]
+  (let [target (.-target event)
+        idx-str (when target
+                  (.getAttribute target "data-take-from-index"))]
+    (when idx-str
+      (js/parseInt idx-str 10))))
+
+(defn drop-index-from-event [event]
+  (let [target (.-target event)
+        idx-str (when target
+                  (.getAttribute target "data-drop-index"))]
+    (when idx-str
+      (js/parseInt idx-str 10))))
 
 (defn install-input! [state* renderer]
   (.addEventListener
@@ -200,7 +326,6 @@
                (.preventDefault event)
                (ui/toggle-inventory! state*))
          nil)
-
        (swap! state* update :keys conj k))))
 
   (.addEventListener
@@ -226,6 +351,43 @@
        (.stopPropagation event)
        (take-selected! state*))))
 
+  (when-let [store-button (ui/store-action-el)]
+    (.addEventListener
+     store-button
+     "click"
+     (fn [event]
+       (.stopPropagation event)
+       (ui/toggle-store-options! state*))))
+
+  (when-let [take-from-button (ui/take-from-action-el)]
+    (.addEventListener
+     take-from-button
+     "click"
+     (fn [event]
+       (.stopPropagation event)
+       (ui/toggle-take-from-options! state*))))
+
+  (when-let [menu (ui/menu-el)]
+    (.addEventListener
+     menu
+     "click"
+     (fn [event]
+       (when-let [idx (store-index-from-event event)]
+         (.stopPropagation event)
+         (store-in-selected! state* idx))
+       (when-let [idx (take-from-index-from-event event)]
+         (.stopPropagation event)
+         (take-from-selected! state* idx)))))
+
+  (when-let [inventory-content (ui/inventory-content-el)]
+    (.addEventListener
+     inventory-content
+     "click"
+     (fn [event]
+       (when-let [idx (drop-index-from-event event)]
+         (.stopPropagation event)
+         (drop-inventory-item! state* idx)))))
+
   (when-let [close-button (ui/close-inspect-el)]
     (.addEventListener
      close-button
@@ -235,14 +397,12 @@
        (ui/close-inspection!)))))
 
 (defn solid-bounds [mesh]
-  (let [pos (.-position mesh)
-        scale (.-scale mesh)
-        half-x (/ (.-x scale) 2)
-        half-z (/ (.-z scale) 2)]
-    {:min-x (- (.-x pos) half-x)
-     :max-x (+ (.-x pos) half-x)
-     :min-z (- (.-z pos) half-z)
-     :max-z (+ (.-z pos) half-z)}))
+  (let [box (THREE/Box3.)]
+    (.setFromObject box mesh)
+    {:min-x (.-x (.-min box))
+     :max-x (.-x (.-max box))
+     :min-z (.-z (.-min box))
+     :max-z (.-z (.-max box))}))
 
 (defn circle-intersects-aabb? [x z radius bounds]
   (let [closest-x (min (:max-x bounds)

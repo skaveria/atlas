@@ -275,10 +275,34 @@
       font-size: 12px;
       padding: 5px 0;
       border-bottom: 1px solid rgba(201,138,60,0.10);
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
     }
 
     .inventory-item:last-child {
       border-bottom: 0;
+    }
+
+    .inventory-item-name {
+      flex: 1;
+    }
+
+    .inventory-drop {
+      background: rgba(214,161,90,0.08);
+      color: var(--amber-hot);
+      border: 1px solid rgba(201,138,60,0.28);
+      border-radius: 5px;
+      padding: 2px 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 11px;
+    }
+
+    .inventory-drop:hover {
+      background: rgba(214,161,90,0.16);
     }
 
     .inspect-title {
@@ -388,7 +412,9 @@
 
   <div id="context-menu">
     <div id="inspect-action" class="context-item">Inspect</div>
-      <div id="take-action" class="context-item">Take</div>
+    <div id="take-action" class="context-item">Take</div>
+    <div id="store-action" class="context-item">Store...</div>
+    <div id="take-from-action" class="context-item">Take From...</div>
   </div>
 
   <div id="hover-tooltip"></div>
