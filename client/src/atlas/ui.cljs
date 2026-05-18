@@ -2,34 +2,39 @@
   (:require [cljs.pprint :as pprint]
             [clojure.string :as str]))
 
-(defn overlay-el []
-  (.getElementById js/document "overlay"))
+(defn overlay-el [] (.getElementById js/document "overlay"))
+(defn overlay-content-el [] (.getElementById js/document "overlay-content"))
+(defn menu-el [] (.getElementById js/document "context-menu"))
+(defn inspect-action-el [] (.getElementById js/document "inspect-action"))
+(defn take-action-el [] (.getElementById js/document "take-action"))
+(defn close-inspect-el [] (.getElementById js/document "close-inspect"))
+(defn hover-tooltip-el [] (.getElementById js/document "hover-tooltip"))
+(defn inventory-panel-el [] (.getElementById js/document "inventory-panel"))
+(defn inventory-content-el [] (.getElementById js/document "inventory-content"))
 
-(defn overlay-content-el []
-  (.getElementById js/document "overlay-content"))
-
-(defn menu-el []
-  (.getElementById js/document "context-menu"))
-
-(defn inspect-action-el []
-  (.getElementById js/document "inspect-action"))
-
-(defn close-inspect-el []
-  (.getElementById js/document "close-inspect"))
-
-(defn hover-tooltip-el []
-  (.getElementById js/document "hover-tooltip"))
+(defn plant-pot? [entity]
+  (or (= (get entity :id) :object/plantpot-001)
+      (= (get entity :id) "object/plantpot-001")
+      (= (get entity :id) ":object/plantpot-001")))
 
 (defn hide-menu! []
   (when-let [menu (menu-el)]
     (set! (.-display (.-style menu)) "none")))
 
-(defn show-menu! [state* x y entity]
-  (swap! state* assoc :selected-entity entity)
+(defn show-menu! [state* x y entity object]
+  (swap! state* assoc
+         :selected-entity entity
+         :selected-object object)
 
   (when-let [inspect-el (inspect-action-el)]
     (set! (.-innerText inspect-el)
           (str "Inspect: " (get entity :name))))
+
+  (when-let [take-el (take-action-el)]
+    (set! (.-innerText take-el)
+          (str "Take: " (get entity :name)))
+    (set! (.-display (.-style take-el))
+          (if (plant-pot? entity) "block" "none")))
 
   (when-let [menu (menu-el)]
     (set! (.-left (.-style menu)) (str x "px"))
@@ -78,8 +83,7 @@
     (set! (.-display (.-style overlay)) "block"))
 
   (when-let [content (overlay-content-el)]
-    (let [record-text (with-out-str
-                        (pprint/pprint entity))
+    (let [record-text (with-out-str (pprint/pprint entity))
           examine (or (get entity :examine)
                       (get-in entity [:inspect :examine]))]
       (set! (.-innerHTML content)
@@ -88,17 +92,36 @@
                  "<div class=\"inspect-name\">"
                  (escape-html (get entity :name))
                  "</div>"
-
                  (if examine
                    (str "<div class=\"inspect-section\">Examine</div>"
                         "<div class=\"inspect-examine\">"
                         (escape-html examine)
                         "</div>")
                    "")
-
                  "<details class=\"record-details\">"
                  "<summary class=\"inspect-section record-summary\">Record</summary>"
                  "<pre class=\"edn-record\">"
                  (highlight-edn record-text)
                  "</pre>"
                  "</details>")))))
+
+(defn render-inventory! [state*]
+  (let [open? (get @state* :inventory-open?)
+        items (get @state* :inventory)]
+    (when-let [panel (inventory-panel-el)]
+      (set! (.-display (.-style panel))
+            (if open? "block" "none")))
+
+    (when-let [content (inventory-content-el)]
+      (set! (.-innerHTML content)
+            (if (seq items)
+              (apply str
+                     (for [item items]
+                       (str "<div class=\"inventory-item\">"
+                            (escape-html (get item :name))
+                            "</div>")))
+              "<div class=\"inventory-empty\">Empty</div>")))))
+
+(defn toggle-inventory! [state*]
+  (swap! state* update :inventory-open? not)
+  (render-inventory! state*))

@@ -4,7 +4,6 @@
 
 (defn material-for [material-key]
   (case material-key
-
     :wood
     (THREE/MeshStandardMaterial.
      #js {:color 0xb8b1a1
@@ -43,19 +42,21 @@
 
     obj))
 
-(defn attach-entity-data! [obj entity solid?]
+(defn attach-entity-data! [obj entity solid? root]
   (set! (.-name obj) (str (get entity :name)))
   (set! (.-userData obj)
         #js {:entity (clj->js entity)
-             :solid solid?})
+             :solid solid?
+             :root root})
   obj)
 
-(defn mark-children! [obj entity solid?]
+(defn mark-children! [obj entity solid? root]
   (.traverse obj
              (fn [child]
                (set! (.-userData child)
                      #js {:entity (clj->js entity)
-                          :solid solid?})))
+                          :solid solid?
+                          :root root})))
   obj)
 
 (defn make-cube [entity]
@@ -63,24 +64,19 @@
         geometry (THREE/BoxGeometry. 1 1 1)
         material (material-for (get body :material))
         mesh (THREE/Mesh. geometry material)]
-    (-> mesh
-        (apply-transform! body)
-        (attach-entity-data! entity true))))
+    (apply-transform! mesh body)
+    (attach-entity-data! mesh entity true mesh)
+    mesh))
 
 (defn make-model! [entity on-loaded]
   (let [body (get entity :body)
         src (get body :model)]
-    (js/console.log "Loading model entity" (clj->js entity))
     (assets/load-model!
      src
      (fn [model]
-       (js/console.log "Loaded model" src model)
-
-       (-> model
-           (apply-transform! body)
-           (attach-entity-data! entity true)
-           (mark-children! entity true))
-
+       (apply-transform! model body)
+       (attach-entity-data! model entity true model)
+       (mark-children! model entity true model)
        (on-loaded model)))))
 
 (defn entity->mesh! [entity on-loaded]

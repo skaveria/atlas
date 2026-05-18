@@ -20,7 +20,7 @@
 (defn clamp [lo hi x]
   (max lo (min hi x)))
 
-(defn entity-at-event [state* event]
+(defn hit-at-event [state* event]
   (let [scene (get @state* :scene)
         camera (get @state* :camera)
         renderer (get @state* :renderer)]
@@ -42,16 +42,22 @@
             (when (< i (.-length hits))
               (let [hit (aget hits i)
                     obj (.-object hit)
-                    raw-entity (aget (.-userData obj) "entity")]
+                    raw-entity (aget (.-userData obj) "entity")
+                    root (aget (.-userData obj) "root")]
                 (if raw-entity
-                  (js->clj raw-entity :keywordize-keys true)
+                  {:entity (js->clj raw-entity :keywordize-keys true)
+                   :object (or root obj)}
                   (recur (inc i)))))))))))
+
+(defn entity-at-event [state* event]
+  (some-> (hit-at-event state* event) :entity))
 
 (defn on-context-menu! [state* event]
   (.preventDefault event)
   (ui/hide-hover-tooltip!)
-  (if-let [entity (entity-at-event state* event)]
-    (ui/show-menu! state* (.-clientX event) (.-clientY event) entity)
+
+  (if-let [{:keys [entity object]} (hit-at-event state* event)]
+    (ui/show-menu! state* (.-clientX event) (.-clientY event) entity object)
     (ui/hide-menu!)))
 
 (defn key-name [event]
@@ -94,6 +100,7 @@
 
 (defn zoom-camera! [state* event]
   (.preventDefault event)
+
   (let [dy (.-deltaY event)]
     (swap! state*
            update
@@ -102,6 +109,7 @@
                    max-camera-radius
                    (+ (or % 7)
                       (* dy zoom-speed)))))
+
   (scene/update-camera! state*))
 
 (defn update-hover-tooltip! [state* event]
@@ -113,15 +121,40 @@
 
     (if (or (get @state* :dragging-camera?)
             menu-open?)
-
       (ui/hide-hover-tooltip!)
-
       (if-let [entity (entity-at-event state* event)]
         (ui/show-hover-tooltip!
          (.-clientX event)
          (.-clientY event)
          entity)
         (ui/hide-hover-tooltip!)))))
+
+(defn remove-solid-object [solid-objects object]
+  (vec
+   (remove
+    (fn [mesh]
+      (identical? mesh object))
+    solid-objects)))
+
+(defn take-selected! [state*]
+  (let [entity (get @state* :selected-entity)
+        object (get @state* :selected-object)
+        scene (get @state* :scene)]
+    (when (and entity object scene)
+      (.remove scene object)
+
+      (swap! state*
+             (fn [s]
+               (-> s
+                   (update :inventory conj entity)
+                   (update :solid-objects remove-solid-object object)
+                   (assoc :inventory-open? true
+                          :selected-entity nil
+                          :selected-object nil))))
+
+      (ui/hide-menu!)
+      (ui/hide-hover-tooltip!)
+      (ui/render-inventory! state*))))
 
 (defn install-input! [state* renderer]
   (.addEventListener
@@ -161,7 +194,14 @@
    js/document
    "keydown"
    (fn [event]
-     (swap! state* update :keys conj (key-name event))))
+     (let [k (key-name event)]
+       (case k
+         "i" (do
+               (.preventDefault event)
+               (ui/toggle-inventory! state*))
+         nil)
+
+       (swap! state* update :keys conj k))))
 
   (.addEventListener
    js/document
@@ -177,6 +217,14 @@
        (.stopPropagation event)
        (when-let [entity (get @state* :selected-entity)]
          (ui/show-inspection! entity)))))
+
+  (when-let [take-button (ui/take-action-el)]
+    (.addEventListener
+     take-button
+     "click"
+     (fn [event]
+       (.stopPropagation event)
+       (take-selected! state*))))
 
   (when-let [close-button (ui/close-inspect-el)]
     (.addEventListener
