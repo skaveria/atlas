@@ -5,115 +5,300 @@
   <title>Atlas</title>
 
   <style>
+    :root {
+      --bg: #070504;
+      --panel: #110b08;
+
+      --amber: #d6a15a;
+      --amber-core: #c98a3c;
+      --amber-hot: #f0c17b;
+      --amber-dim: #6e4d2b;
+
+      --border: rgba(201,138,60,0.22);
+      --glow: rgba(240,193,123,0.18);
+    }
+
+    * { box-sizing: border-box; }
+
     html, body {
       margin: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #111;
+      background: var(--bg);
+      color: var(--amber);
+      font-family: "IBM Plex Mono", "Menlo", "Monaco", monospace;
+      font-size: 13px;
     }
 
     canvas {
       display: block;
     }
 
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(214,161,90,0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(214,161,90,0.045) 1px, transparent 1px);
+      background-size: 9px 9px;
+      opacity: 0.13;
+      mix-blend-mode: screen;
+      z-index: 2;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at center,
+          transparent 52%,
+          rgba(0,0,0,0.58) 100%);
+      z-index: 3;
+    }
+
     #overlay {
       position: absolute;
-      top: 10px;
-      left: 10px;
-      color: white;
-      font-family: monospace;
-      background: rgba(0,0,0,0.55);
-      padding: 8px;
-      max-width: 520px;
+      top: 12px;
+      left: 12px;
+      width: min(420px, calc(100vw - 24px));
+      max-height: calc(100vh - 24px);
+      overflow: auto;
+      display: none;
+
+      color: var(--amber);
+      background:
+        linear-gradient(180deg, rgba(255,220,170,0.025), rgba(0,0,0,0.52)),
+        var(--panel);
+
+      padding: 8px 12px 12px 12px;
       white-space: pre-wrap;
       z-index: 10;
-      border: 1px solid rgba(255,255,255,0.12);
-      backdrop-filter: blur(4px);
+
+      border: 1px solid var(--border);
+      border-radius: 8px;
+
+      box-shadow:
+        0 0 14px var(--glow),
+        inset 0 0 18px rgba(255,210,140,0.03),
+        0 10px 30px rgba(0,0,0,0.72);
+
+      backdrop-filter: blur(3px);
+    }
+
+    #overlay::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(214,161,90,0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(214,161,90,0.055) 1px, transparent 1px);
+      background-size: 7px 7px;
+      opacity: 0.13;
+      mix-blend-mode: multiply;
+      border-radius: inherit;
     }
 
     #close-inspect {
       float: right;
-      margin-left: 12px;
-      background: rgba(255,255,255,0.12);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.25);
+      margin-left: 10px;
+
+      background: rgba(214,161,90,0.08);
+      color: var(--amber-hot);
+      border: 1px solid rgba(201,138,60,0.34);
+
       cursor: pointer;
-      font-family: monospace;
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 1;
+
+      border-radius: 5px;
+      padding: 2px 6px;
+
+      position: relative;
+      z-index: 2;
     }
 
     #close-inspect:hover {
-      background: rgba(255,255,255,0.22);
+      background: rgba(214,161,90,0.16);
+      box-shadow: 0 0 8px rgba(240,193,123,0.20);
     }
 
     #overlay-content {
       white-space: pre-wrap;
+      position: relative;
+      z-index: 1;
     }
 
     #context-menu {
       position: absolute;
       display: none;
-      color: white;
-      font-family: monospace;
-      background: rgba(20,20,20,0.94);
-      border: 1px solid rgba(255,255,255,0.25);
-      padding: 4px;
+
+      color: var(--amber-hot);
+      font-family: inherit;
+      font-size: 12px;
+
+      background:
+        linear-gradient(180deg, rgba(255,220,170,0.025), rgba(0,0,0,0.50)),
+        var(--panel);
+
+      border: 1px solid rgba(201,138,60,0.30);
+      padding: 3px;
       z-index: 20;
-      min-width: 120px;
-      backdrop-filter: blur(4px);
+      min-width: 128px;
+      border-radius: 8px;
+
+      box-shadow:
+        0 0 12px rgba(240,193,123,0.15),
+        inset 0 0 16px rgba(255,210,140,0.03),
+        0 10px 28px rgba(0,0,0,0.70);
+
+      backdrop-filter: blur(3px);
     }
 
     .context-item {
-      padding: 6px 10px;
+      padding: 5px 8px;
       cursor: pointer;
+      border-radius: 6px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
     }
 
     .context-item:hover {
-      background: rgba(255,255,255,0.15);
+      background: rgba(214,161,90,0.12);
+      text-shadow: 0 0 5px rgba(240,193,123,0.22);
     }
 
+#hover-tooltip {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+
+  z-index: 30;
+
+  color: var(--amber-hot);
+  font-family: inherit;
+  font-size: 12px;
+
+  background:
+    linear-gradient(180deg, rgba(255,220,170,0.025), rgba(0,0,0,0.50)),
+    var(--panel);
+
+  border: 1px solid rgba(201,138,60,0.30);
+  border-radius: 8px;
+
+  padding: 5px 8px;
+  min-width: 128px;
+
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  box-shadow:
+    0 0 12px rgba(240,193,123,0.15),
+    inset 0 0 16px rgba(255,210,140,0.03),
+    0 10px 28px rgba(0,0,0,0.70);
+
+  backdrop-filter: blur(3px);
+}
+
+
     .inspect-title {
-      color: #d7ffd7;
-      margin-bottom: 12px;
+      color: var(--amber-dim);
+
+      font-size: 10px;
+      font-weight: 600;
+
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+
+      opacity: 0.72;
+
+      height: 22px;
+      line-height: 22px;
+
+      margin: -2px 0 12px 0;
+      padding: 0 0 8px 0;
+
+      border-bottom: 1px solid rgba(201,138,60,0.14);
     }
 
     .inspect-section {
-      color: #88aaff;
+      color: var(--amber-core);
+
       margin-top: 10px;
       margin-bottom: 4px;
-      font-weight: bold;
+
+      font-weight: 700;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+
+      font-size: 10px;
+      opacity: 0.82;
+
+      text-shadow: 0 0 2px rgba(240,193,123,0.18);
     }
 
     .inspect-name {
-      color: #ffffff;
+      color: var(--amber-hot);
+
+      font-size: 15px;
+      font-weight: 600;
+
+      margin-bottom: 6px;
+
+      text-shadow: 0 0 4px rgba(240,193,123,0.12);
     }
 
     .inspect-examine {
-      color: #d8cfa8;
+      color: var(--amber);
+      opacity: 0.88;
       line-height: 1.35;
+      font-size: 13px;
+    }
+
+    .record-details {
+      margin-top: 8px;
+    }
+
+    .record-summary {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .record-summary:hover {
+      color: var(--amber-hot);
     }
 
     .edn-record {
-      margin: 0;
-      color: #dddddd;
+      margin: 4px 0 0 0;
+      color: #c89c63;
       white-space: pre-wrap;
-      line-height: 1.3;
+      line-height: 1.28;
+      opacity: 0.90;
+      font-size: 12px;
     }
 
     .edn-keyword {
-      color: #91d991;
+      color: #e2b36e;
     }
 
     .edn-string {
-      color: #d8cfa8;
+      color: #d6c29a;
     }
 
     .edn-number {
-      color: #9fc7ff;
+      color: #cfa46b;
     }
 
     .edn-bracket {
-      color: #c586c0;
+      color: #7d5b37;
     }
   </style>
 </head>
@@ -121,14 +306,14 @@
 <body>
   <div id="overlay">
     <button id="close-inspect">×</button>
-    <div id="overlay-content">Atlas Prototype 0</div>
+    <div id="overlay-content"></div>
   </div>
 
   <div id="context-menu">
-    <div id="inspect-action" class="context-item">
-      Inspect
-    </div>
+    <div id="inspect-action" class="context-item">Inspect</div>
   </div>
+
+  <div id="hover-tooltip"></div>
 
   <script src="/js/main.js"></script>
 </body>

@@ -49,6 +49,7 @@
 
 (defn on-context-menu! [state* event]
   (.preventDefault event)
+  (ui/hide-hover-tooltip!)
   (if-let [entity (entity-at-event state* event)]
     (ui/show-menu! state* (.-clientX event) (.-clientY event) entity)
     (ui/hide-menu!)))
@@ -58,6 +59,7 @@
 
 (defn begin-drag! [state* event]
   (when (= 0 (.-button event))
+    (ui/hide-hover-tooltip!)
     (swap! state* assoc
            :dragging-camera? true
            :last-drag-x (.-clientX event)
@@ -102,6 +104,25 @@
                       (* dy zoom-speed)))))
   (scene/update-camera! state*))
 
+(defn update-hover-tooltip! [state* event]
+  (let [menu-open?
+        (= "block"
+           (.-display
+            (.-style
+             (ui/menu-el))))]
+
+    (if (or (get @state* :dragging-camera?)
+            menu-open?)
+
+      (ui/hide-hover-tooltip!)
+
+      (if-let [entity (entity-at-event state* event)]
+        (ui/show-hover-tooltip!
+         (.-clientX event)
+         (.-clientY event)
+         entity)
+        (ui/hide-hover-tooltip!)))))
+
 (defn install-input! [state* renderer]
   (.addEventListener
    (.-domElement renderer)
@@ -116,7 +137,9 @@
   (.addEventListener
    js/document
    "mousemove"
-   #(drag-camera! state* %))
+   (fn [event]
+     (drag-camera! state* event)
+     (update-hover-tooltip! state* event)))
 
   (.addEventListener
    js/document
@@ -201,7 +224,6 @@
         old-z (.-z pos)
         next-x (+ old-x dx)
         next-z (+ old-z dz)]
-
     (when-not (blocked? state* next-x old-z)
       (set! (.-x pos) next-x))
 

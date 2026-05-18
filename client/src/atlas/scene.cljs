@@ -31,8 +31,8 @@
             y (range cells)]
       (set! (.-fillStyle ctx)
             (if (even? (+ x y))
-              "#283226"
-              "#171b17"))
+              "#323232"
+              "#1a1a1a"))
       (.fillRect ctx
                  (* x cell-size)
                  (* y cell-size)
@@ -57,7 +57,11 @@
     floor))
 
 (defn make-grid []
-  (let [grid (THREE/GridHelper. 24 24 0x6f806f 0x303830)]
+  (let [grid (THREE/GridHelper.
+              24
+              24
+              0x8a7a68
+              0x3a322c)]
     (set! (.-y (.-position grid)) 0.012)
     grid))
 

@@ -6,23 +6,24 @@
 
     :wood
     (THREE/MeshStandardMaterial.
-     #js {:color 0x8fae8f
-          :roughness 0.72
+     #js {:color 0xb8b1a1
+          :roughness 0.76
           :metalness 0.02
-          :envMapIntensity 0.65})
+          :envMapIntensity 0.72})
 
     "wood"
     (THREE/MeshStandardMaterial.
-     #js {:color 0x8fae8f
-          :roughness 0.72
+     #js {:color 0xb8b1a1
+          :roughness 0.76
           :metalness 0.02
-          :envMapIntensity 0.65})
+          :envMapIntensity 0.72})
 
     (THREE/MeshStandardMaterial.
-     #js {:color 0xaaaaaa
-          :roughness 0.72
+     #js {:color 0xb0b0b0
+          :roughness 0.74
           :metalness 0.02
-          :envMapIntensity 0.65})))
+          :envMapIntensity 0.7})))
+
 
 (defn make-cube [entity]
   (let [body (get entity :body)
